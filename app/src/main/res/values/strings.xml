@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Quantum Messenger</string>
+    <string name="security_status">Hybrid E2EE ready: X25519 + ML-KEM + per-message ratchet</string>
+    <string name="rotate_keys">Rotate session keys now</string>
+    <string name="pqc_missing">PQC bridge missing (oqsbridge). Hybrid session is blocked by design.</string>
+    <string name="session_rotated">Session rotated. Epoch=%1$d, keyId=%2$s..., self-test=%3$s</string>
+</resources>
