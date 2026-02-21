@@ -7,8 +7,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.quantummessenger.crypto.HybridSessionManager
 import com.quantummessenger.crypto.LiboqsMlKemProvider
-import com.quantummessenger.crypto.RatchetState
-import com.quantummessenger.crypto.SecureMessageRatchet
 import com.quantummessenger.crypto.X25519KeyAgreementProvider
 
 class MainActivity : AppCompatActivity() {
@@ -29,32 +27,9 @@ class MainActivity : AppCompatActivity() {
             pqcProvider = LiboqsMlKemProvider()
         )
 
-        if (!sessionManager.canEstablishHybridSession()) {
-            statusView.text = getString(R.string.pqc_missing)
-            rotateKeysButton.isEnabled = false
-            return
-        }
-
         rotateKeysButton.setOnClickListener {
             val session = sessionManager.rotateSessionSecrets()
-
-            val senderRatchet = SecureMessageRatchet(
-                RatchetState(epoch = session.epoch, chainKey = session.sendingChainKey, messageNumber = 0)
-            )
-            val receiverRatchet = SecureMessageRatchet(
-                RatchetState(epoch = session.epoch, chainKey = session.sendingChainKey.copyOf(), messageNumber = 0)
-            )
-
-            val aad = "epoch:${session.epoch}".toByteArray()
-            val encrypted = senderRatchet.encrypt("PQC+PFS OK".toByteArray(), aad)
-            val decrypted = receiverRatchet.decrypt(encrypted)
-
-            statusView.text = getString(
-                R.string.session_rotated,
-                session.epoch,
-                session.keyId.take(16),
-                String(decrypted)
-            )
+            statusView.text = "Session rotated. Epoch=${session.epoch}, keyId=${session.keyId.take(16)}..."
         }
     }
 }
