@@ -2,6 +2,7 @@ package com.quantummessenger.crypto
 
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import java.security.InvalidAlgorithmParameterException
 import java.security.spec.NamedParameterSpec
 import java.security.InvalidAlgorithmParameterException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -105,6 +106,17 @@ class LiboqsMlKemProvider : PqcKemProvider {
     }
 
     private external fun oqsMlKemSharedSecret(): ByteArray
+}
+
+
+class MissingNativeBridgePqcProvider(
+    private val detail: String = "liboqs JNI bridge (oqsbridge) binary is not packaged for this ABI/build."
+) : PqcKemProvider {
+    override fun isAvailable(): Boolean = false
+
+    override fun deriveSharedSecret(): ByteArray {
+        throw PqcUnavailableException(detail)
+    }
 }
 
 class LocalTestingPqcProvider : PqcKemProvider {
