@@ -54,4 +54,13 @@ class PqcProviderSelectionTest {
         assertEquals(PqcProviderMode.UNAVAILABLE, selected.mode)
         assertNull(selected.provider)
     }
+
+    @Test(expected = PqcUnavailableException::class)
+    fun `missing native bridge provider fails closed with detail`() {
+        val provider = MissingNativeBridgePqcProvider("missing ABI arm64-v8a")
+
+        assertEquals(false, provider.isAvailable())
+        provider.deriveSharedSecret()
+    }
+
 }

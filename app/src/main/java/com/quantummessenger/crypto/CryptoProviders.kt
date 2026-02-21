@@ -2,6 +2,7 @@ package com.quantummessenger.crypto
 
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
+import java.security.InvalidAlgorithmParameterException
 import java.security.spec.NamedParameterSpec
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.KeyAgreement
@@ -54,7 +55,12 @@ fun selectPqcProvider(
 class X25519KeyAgreementProvider : ClassicKeyAgreementProvider {
     override fun deriveSharedSecret(): ByteArray {
         val kpg = KeyPairGenerator.getInstance("X25519")
-        kpg.initialize(NamedParameterSpec("X25519"))
+        try {
+            kpg.initialize(NamedParameterSpec("X25519"))
+        } catch (_: InvalidAlgorithmParameterException) {
+            // Some Android providers reject NamedParameterSpec for X25519 but still
+            // generate valid key pairs when used without explicit initialization.
+        }
 
         val localEphemeral = kpg.generateKeyPair()
         val peerEphemeral = kpg.generateKeyPair()
@@ -99,6 +105,17 @@ class LiboqsMlKemProvider : PqcKemProvider {
     }
 
     private external fun oqsMlKemSharedSecret(): ByteArray
+}
+
+
+class MissingNativeBridgePqcProvider(
+    private val detail: String = "liboqs JNI bridge (oqsbridge) binary is not packaged for this ABI/build."
+) : PqcKemProvider {
+    override fun isAvailable(): Boolean = false
+
+    override fun deriveSharedSecret(): ByteArray {
+        throw PqcUnavailableException(detail)
+    }
 }
 
 class LocalTestingPqcProvider : PqcKemProvider {
