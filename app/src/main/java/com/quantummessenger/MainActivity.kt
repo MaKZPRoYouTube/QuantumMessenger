@@ -26,7 +26,8 @@ class MainActivity : AppCompatActivity() {
         val statusView = findViewById<TextView>(R.id.statusView)
         val rotateKeysButton = findViewById<Button>(R.id.rotateKeysButton)
 
-        val providerSelection = selectPqcProvider(allowLocalTestingFallback = BuildConfig.DEBUG)
+        val isDebugBuild = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val providerSelection = selectPqcProvider(allowLocalTestingFallback = isDebugBuild)
         val sessionManager = providerSelection.provider?.let {
             HybridSessionManager(
                 classicProvider = X25519KeyAgreementProvider(),
