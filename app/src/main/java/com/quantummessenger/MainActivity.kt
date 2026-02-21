@@ -6,11 +6,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.quantummessenger.crypto.HybridSessionManager
-import com.quantummessenger.crypto.LiboqsMlKemProvider
+import com.quantummessenger.crypto.PqcProviderMode
 import com.quantummessenger.crypto.PqcUnavailableException
 import com.quantummessenger.crypto.RatchetState
 import com.quantummessenger.crypto.SecureMessageRatchet
 import com.quantummessenger.crypto.X25519KeyAgreementProvider
+import com.quantummessenger.crypto.selectPqcProvider
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,20 +26,32 @@ class MainActivity : AppCompatActivity() {
         val statusView = findViewById<TextView>(R.id.statusView)
         val rotateKeysButton = findViewById<Button>(R.id.rotateKeysButton)
 
-        val sessionManager = HybridSessionManager(
-            classicProvider = X25519KeyAgreementProvider(),
-            pqcProvider = LiboqsMlKemProvider()
-        )
+        val providerSelection = selectPqcProvider(allowLocalTestingFallback = BuildConfig.DEBUG)
+        val sessionManager = providerSelection.provider?.let {
+            HybridSessionManager(
+                classicProvider = X25519KeyAgreementProvider(),
+                pqcProvider = it
+            )
+        }
 
-        if (!sessionManager.canEstablishHybridSession()) {
-            statusView.text = getString(R.string.pqc_missing)
-            rotateKeysButton.isEnabled = false
-            return
+        when (providerSelection.mode) {
+            PqcProviderMode.NATIVE_LIBOQS -> {
+                statusView.text = getString(R.string.security_status)
+            }
+            PqcProviderMode.LOCAL_TESTING_FALLBACK -> {
+                statusView.text = getString(R.string.pqc_debug_fallback)
+            }
+            PqcProviderMode.UNAVAILABLE -> {
+                statusView.text = getString(R.string.pqc_missing)
+                rotateKeysButton.isEnabled = false
+                return
+            }
         }
 
         rotateKeysButton.setOnClickListener {
+            val safeSessionManager = sessionManager ?: return@setOnClickListener
             runCatching {
-                val session = sessionManager.rotateSessionSecrets()
+                val session = safeSessionManager.rotateSessionSecrets()
 
                 val senderRatchet = SecureMessageRatchet(
                     RatchetState(epoch = session.epoch, chainKey = session.sendingChainKey, messageNumber = 0)
@@ -51,8 +64,14 @@ class MainActivity : AppCompatActivity() {
                 val encrypted = senderRatchet.encrypt("PQC+PFS OK".toByteArray(), aad)
                 val decrypted = receiverRatchet.decrypt(encrypted)
 
+                val statusStringRes = when (providerSelection.mode) {
+                    PqcProviderMode.NATIVE_LIBOQS -> R.string.session_rotated
+                    PqcProviderMode.LOCAL_TESTING_FALLBACK -> R.string.session_rotated_debug_fallback
+                    PqcProviderMode.UNAVAILABLE -> R.string.session_rotated
+                }
+
                 statusView.text = getString(
-                    R.string.session_rotated,
+                    statusStringRes,
                     session.epoch,
                     session.keyId.take(16),
                     String(decrypted)

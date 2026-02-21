@@ -4,6 +4,8 @@
     <string name="rotate_keys">Rotate session keys now</string>
     <string name="pqc_missing">PQC bridge missing (oqsbridge). Hybrid session is blocked by design.</string>
     <string name="pqc_runtime_unavailable">PQC runtime unavailable. App blocked session rotation to avoid insecure fallback.</string>
+    <string name="pqc_debug_fallback">PQC bridge not found. Running in DEBUG compatibility mode with local test KEM only.</string>
+    <string name="session_rotated_debug_fallback">[DEBUG MODE] Session rotated with local PQC stub. Epoch=%1$d, keyId=%2$s..., self-test=%3$s</string>
     <string name="session_rotated">Session rotated. Epoch=%1$d, keyId=%2$s..., self-test=%3$s</string>
     <string name="session_rotate_failed">Session rotation failed safely: %1$s</string>
 </resources>
