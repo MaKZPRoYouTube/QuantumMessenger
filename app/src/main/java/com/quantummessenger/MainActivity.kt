@@ -1,6 +1,5 @@
 package com.quantummessenger
 
-import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Button
@@ -8,14 +7,12 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.quantummessenger.crypto.HybridSessionManager
 import com.quantummessenger.crypto.LiboqsMlKemProvider
-import com.quantummessenger.crypto.MissingNativeBridgePqcProvider
 import com.quantummessenger.crypto.PqcProviderMode
 import com.quantummessenger.crypto.PqcUnavailableException
 import com.quantummessenger.crypto.RatchetState
 import com.quantummessenger.crypto.SecureMessageRatchet
 import com.quantummessenger.crypto.X25519KeyAgreementProvider
 import com.quantummessenger.crypto.selectPqcProvider
-import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,22 +28,9 @@ class MainActivity : AppCompatActivity() {
         val rotateKeysButton = findViewById<Button>(R.id.rotateKeysButton)
 
         val isDebugBuild = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        val nativeLibDir = applicationInfo.nativeLibraryDir
-        val nativeBridgePackaged = nativeLibDir != null &&
-            File(nativeLibDir, System.mapLibraryName("oqsbridge")).exists()
-
-        val preferredAbi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
         val providerSelection = selectPqcProvider(
             allowLocalTestingFallback = isDebugBuild,
-            nativeProviderFactory = {
-                if (nativeBridgePackaged) {
-                    LiboqsMlKemProvider()
-                } else {
-                    MissingNativeBridgePqcProvider(
-                        detail = "liboqs JNI bridge (oqsbridge) binary is not packaged for ABI=$preferredAbi"
-                    )
-                }
-            }
+            nativeProviderFactory = { LiboqsMlKemProvider() }
         )
         val sessionManager = providerSelection.provider?.let {
             HybridSessionManager(
@@ -63,7 +47,7 @@ class MainActivity : AppCompatActivity() {
                 statusView.text = getString(R.string.pqc_debug_fallback)
             }
             PqcProviderMode.UNAVAILABLE -> {
-                statusView.text = getString(R.string.pqc_missing_with_abi, preferredAbi)
+                statusView.text = getString(R.string.pqc_missing)
                 rotateKeysButton.isEnabled = false
                 return
             }
