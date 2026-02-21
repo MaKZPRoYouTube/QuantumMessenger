@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Quantum Messenger</string>
+    <string name="security_status">Hybrid E2EE ready: X25519 + ML-KEM (Kyber) + ratchet</string>
+    <string name="rotate_keys">Rotate session keys now</string>
+</resources>
