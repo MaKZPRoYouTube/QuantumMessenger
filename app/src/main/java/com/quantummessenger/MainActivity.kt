@@ -7,12 +7,14 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.quantummessenger.crypto.HybridSessionManager
 import com.quantummessenger.crypto.LiboqsMlKemProvider
+import com.quantummessenger.crypto.PqcKemProvider
 import com.quantummessenger.crypto.PqcProviderMode
 import com.quantummessenger.crypto.PqcUnavailableException
 import com.quantummessenger.crypto.RatchetState
 import com.quantummessenger.crypto.SecureMessageRatchet
 import com.quantummessenger.crypto.X25519KeyAgreementProvider
 import com.quantummessenger.crypto.selectPqcProvider
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,9 +30,27 @@ class MainActivity : AppCompatActivity() {
         val rotateKeysButton = findViewById<Button>(R.id.rotateKeysButton)
 
         val isDebugBuild = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val nativeLibDir = applicationInfo.nativeLibraryDir
+        val nativeBridgePackaged = nativeLibDir != null &&
+            File(nativeLibDir, System.mapLibraryName("oqsbridge")).exists()
+
         val providerSelection = selectPqcProvider(
             allowLocalTestingFallback = isDebugBuild,
-            nativeProviderFactory = { LiboqsMlKemProvider() }
+            nativeProviderFactory = {
+                if (nativeBridgePackaged) {
+                    LiboqsMlKemProvider()
+                } else {
+                    object : PqcKemProvider {
+                        override fun isAvailable(): Boolean = false
+
+                        override fun deriveSharedSecret(): ByteArray {
+                            throw PqcUnavailableException(
+                                "liboqs JNI bridge (oqsbridge) binary is not packaged for this ABI/build."
+                            )
+                        }
+                    }
+                }
+            }
         )
         val sessionManager = providerSelection.provider?.let {
             HybridSessionManager(
