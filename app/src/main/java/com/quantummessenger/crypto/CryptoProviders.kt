@@ -1,10 +1,10 @@
 package com.quantummessenger.crypto
 
-import javax.crypto.KeyAgreement
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
 import java.security.spec.NamedParameterSpec
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.crypto.KeyAgreement
 
 interface ClassicKeyAgreementProvider {
     fun deriveSharedSecret(): ByteArray
@@ -16,6 +16,33 @@ interface PqcKemProvider {
 }
 
 class PqcUnavailableException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
+
+enum class PqcProviderMode {
+    NATIVE_LIBOQS,
+    LOCAL_TESTING_FALLBACK,
+    UNAVAILABLE
+}
+
+data class PqcProviderSelection(
+    val provider: PqcKemProvider?,
+    val mode: PqcProviderMode
+)
+
+fun selectPqcProvider(
+    allowLocalTestingFallback: Boolean,
+    nativeProviderFactory: () -> PqcKemProvider = { LiboqsMlKemProvider() }
+): PqcProviderSelection {
+    val nativeProvider = nativeProviderFactory()
+    if (nativeProvider.isAvailable()) {
+        return PqcProviderSelection(nativeProvider, PqcProviderMode.NATIVE_LIBOQS)
+    }
+
+    if (allowLocalTestingFallback) {
+        return PqcProviderSelection(LocalTestingPqcProvider(), PqcProviderMode.LOCAL_TESTING_FALLBACK)
+    }
+
+    return PqcProviderSelection(provider = null, mode = PqcProviderMode.UNAVAILABLE)
+}
 
 /**
  * Real X25519 key agreement implementation.
